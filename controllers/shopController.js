@@ -49,15 +49,22 @@ const createShop = async (req, res) => {
 
 const getAllShop = async (req, res) => {
   try {
-    const { shopName, adminEmail, productName, stock } = req.query;
+    const { shopName, adminEmail, productName, stock, minPrice, maxPrice } =
+      req.query;
     const condition = {};
     if (shopName) condition.name = { [Op.iLike]: `%${shopName}%` };
     if (adminEmail) condition.adminEmail = { [Op.iLike]: `%${adminEmail}%` };
 
-
-    const productCondition={};
+    const productCondition = {};
     if (productName) productCondition.name = { [Op.iLike]: `%${productName}%` };
-    if (stock) productCondition.stock = stock ;
+    if (stock) productCondition.stock = stock;
+    if (minPrice) productCondition.price = { [Op.gte]: minPrice };
+    if (maxPrice) {
+      productCondition.price = {
+        ...productCondition.price,
+        [Op.lte]: maxPrice,
+      };
+    }
 
     const shops = await Shops.findAll({
       include: [
@@ -65,7 +72,7 @@ const getAllShop = async (req, res) => {
           model: Products,
           as: "products",
           attributes: ["name", "images", "stock", "price"],
-          where:productCondition
+          where: productCondition,
         },
         {
           model: Users,
@@ -74,10 +81,10 @@ const getAllShop = async (req, res) => {
         },
       ],
       attributes: ["name", "adminEmail"],
-      where:condition
+      where: condition,
     });
 
-    const totalData=shops.length
+    const totalData = shops.length;
     res.status(200).json({
       status: "Success",
       message: "Success get shops data",
