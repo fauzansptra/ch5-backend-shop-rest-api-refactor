@@ -4,23 +4,26 @@ const findUsers = async (req, res, next) => {
   try {
     const { name, age, address } = req.query;
     const condition = {};
-    
+
     if (name) condition.name = { [Op.iLike]: `%${name}%` };
     if (age) condition.age = age;
     if (address) condition.address = { [Op.iLike]: `%${address}%` };
 
     const { page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
-    
+
+    const { sortBy = "name", order = "ASC" } = req.query;
+
     const users = await Users.findAndCountAll({
       where: condition,
       limit: parseInt(limit),
       offset: parseInt(offset),
+      order: [[sortBy, order.toUpperCase()]],
     });
-    
+
     const totalData = users.count;
     const totalPages = Math.ceil(totalData / limit);
-    
+
     res.status(200).json({
       status: "Success",
       data: {
@@ -30,12 +33,10 @@ const findUsers = async (req, res, next) => {
         users: users.rows,
       },
     });
-    
   } catch (err) {
     next(err);
   }
 };
-
 
 const findUserById = async (req, res, next) => {
   try {
