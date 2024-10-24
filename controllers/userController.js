@@ -9,16 +9,28 @@ const findUsers = async (req, res, next) => {
     if (age) condition.age = age;
     if (address) condition.address = { [Op.iLike]: `%${address}%` };
 
-    const users = await Users.findAll({
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+    
+    const users = await Users.findAndCountAll({
       where: condition,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
     });
-
+    
+    const totalData = users.count;
+    const totalPages = Math.ceil(totalData / limit);
+    
     res.status(200).json({
       status: "Success",
       data: {
-        users,
+        totalData,
+        totalPages,
+        currentPage: parseInt(page),
+        users: users.rows,
       },
     });
+    
   } catch (err) {
     next(err);
   }
