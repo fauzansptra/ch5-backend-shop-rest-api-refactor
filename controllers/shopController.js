@@ -1,4 +1,5 @@
 const { Shops, Products, Users } = require("../models");
+const { Op, where } = require("sequelize");
 
 const createShop = async (req, res) => {
   const { name, adminEmail, userId } = req.body;
@@ -23,7 +24,7 @@ const createShop = async (req, res) => {
     if (error.name === "SequelizeValidationError") {
       const errorMessage = error.errors.map((err) => err.message);
       return res.status(400).json({
-        status: "Fail",
+        status: "Failed",
         message: errorMessage[0],
         isSuccess: false,
         data: null,
@@ -31,14 +32,14 @@ const createShop = async (req, res) => {
     } else if (error.name === "SequelizeDatabaseError") {
       return res.status(400).json({
         status: "Failed",
-        message: error.message || "Database Error",
+        message: error.message || "Database error",
         isSuccess: false,
         data: null,
       });
     } else {
       res.status(500).json({
         status: "Failed",
-        message: "An Unexpected Error Occurred",
+        message: "An unexpected error occurred",
         isSuccess: false,
         data: null,
       });
@@ -48,27 +49,39 @@ const createShop = async (req, res) => {
 
 const getAllShop = async (req, res) => {
   try {
+    const { shopName, adminEmail, productName, stock } = req.query;
+    const condition = {};
+    if (shopName) condition.name = { [Op.iLike]: `%${shopName}%` };
+
+    const productCondition={};
+    if (productName) productCondition.name = { [Op.iLike]: `%${productName}%` };
+    if (stock) productCondition.stock = stock ;
+
     const shops = await Shops.findAll({
       include: [
         {
           model: Products,
           as: "products",
-          attributes:["name","images"]
+          attributes: ["name", "images", "stock", "price"],
+          where:productCondition
         },
         {
           model: Users,
           as: "user",
-          attributes:["name"]
+          attributes: ["name"],
         },
       ],
-      attributes:["name","adminEmail"]
+      attributes: ["name", "adminEmail"],
+      where:condition
     });
 
+    const totalData=shops.length
     res.status(200).json({
       status: "Success",
       message: "Success get shops data",
       isSuccess: true,
       data: {
+        totalData,
         shops,
       },
     });
