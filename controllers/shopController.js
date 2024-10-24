@@ -49,8 +49,16 @@ const createShop = async (req, res) => {
 
 const getAllShop = async (req, res) => {
   try {
-    const { shopName, adminEmail, productName, stock, minPrice, maxPrice } =
-      req.query;
+    const {
+      shopName,
+      adminEmail,
+      productName,
+      stock,
+      minPrice,
+      maxPrice,
+      page = 1,
+      limit = 10,
+    } = req.query;
     const condition = {};
     if (shopName) condition.name = { [Op.iLike]: `%${shopName}%` };
     if (adminEmail) condition.adminEmail = { [Op.iLike]: `%${adminEmail}%` };
@@ -65,6 +73,9 @@ const getAllShop = async (req, res) => {
         [Op.lte]: maxPrice,
       };
     }
+
+    // pagination
+    const offset = (page - 1) * limit;
 
     const shops = await Shops.findAll({
       include: [
@@ -84,14 +95,18 @@ const getAllShop = async (req, res) => {
       where: condition,
     });
 
-    const totalData = shops.length;
+    const totalData = shops.count;
+    const totalPages = Math.ceil(totalData / limit);
+
     res.status(200).json({
       status: "Success",
       message: "Success get shops data",
       isSuccess: true,
       data: {
         totalData,
-        shops,
+        totalPages,
+        currentPage: parseInt(page),
+        shops: shops.rows,
       },
     });
   } catch (error) {
