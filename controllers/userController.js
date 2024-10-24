@@ -2,7 +2,16 @@ const { Users } = require("../models");
 
 const findUsers = async (req, res, next) => {
   try {
-    const users = await Users.findAll();
+    const { name, age, address } = req.query;
+    const condition = {};
+    
+    if (name) condition.name = { [Op.iLike]: `%${name}%` };
+    if (age) condition.age = age;
+    if (address) condition.address = { [Op.iLike]: `%${address}%` };
+
+    const users = await Users.findAll({
+      where: condition,
+    });
 
     res.status(200).json({
       status: "Success",
@@ -10,8 +19,11 @@ const findUsers = async (req, res, next) => {
         users,
       },
     });
-  } catch (err) {}
+  } catch (err) {
+    next(err);
+  }
 };
+
 
 const findUserById = async (req, res, next) => {
   try {
