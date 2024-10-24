@@ -52,6 +52,8 @@ const getAllShop = async (req, res) => {
     const { shopName, adminEmail, productName, stock } = req.query;
     const condition = {};
     if (shopName) condition.name = { [Op.iLike]: `%${shopName}%` };
+    if (adminEmail) condition.adminEmail = { [Op.iLike]: `%${adminEmail}%` };
+
 
     const productCondition={};
     if (productName) productCondition.name = { [Op.iLike]: `%${productName}%` };
