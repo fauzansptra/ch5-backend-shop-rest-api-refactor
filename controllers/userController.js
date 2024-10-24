@@ -1,31 +1,34 @@
 const { Users } = require("../models");
+const { Op } = require("sequelize");
 
 const findUsers = async (req, res, next) => {
   try {
-    const { name, age, address } = req.query;
-    const condition = {};
+    const { name, age, address, role, page = 1, limit = 10, sortBy = 'name', order = 'ASC' } = req.query;
+    
+    const userCondition = {};
+    if (name) userCondition.name = { [Op.iLike]: `%${name}%` };
+    if (age) userCondition.age = age; 
+    if (address) userCondition.address = { [Op.iLike]: `%${address}%` };
+    if (role) userCondition.role = role;
 
-    if (name) condition.name = { [Op.iLike]: `%${name}%` };
-    if (age) condition.age = age;
-    if (address) condition.address = { [Op.iLike]: `%${address}%` };
-
-    const { page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
 
-    const { sortBy = "name", order = "ASC" } = req.query;
-
     const users = await Users.findAndCountAll({
-      where: condition,
+      where: userCondition,
       limit: parseInt(limit),
       offset: parseInt(offset),
       order: [[sortBy, order.toUpperCase()]],
+      attributes: ["name", "age", "address", "role"]
     });
 
     const totalData = users.count;
     const totalPages = Math.ceil(totalData / limit);
 
+   
     res.status(200).json({
       status: "Success",
+      message: "Users fetched successfully",
+      isSuccess: true,
       data: {
         totalData,
         totalPages,
@@ -33,10 +36,33 @@ const findUsers = async (req, res, next) => {
         users: users.rows,
       },
     });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    console.log(error.name);
+
+
+    if (error.name === "SequelizeValidationError") {
+      const errorMessage = error.errors.map((err) => err.message);
+      return res.status(400).json({
+        status: "Failed",
+        message: errorMessage[0],
+        isSuccess: false,
+        data: null,
+      });
+    }
+
+    res.status(500).json({
+      status: "Failed",
+      message: error.message,
+      isSuccess: false,
+      data: null,
+    });
   }
 };
+
+module.exports = {
+  findUsers,
+};
+
 
 const findUserById = async (req, res, next) => {
   try {
