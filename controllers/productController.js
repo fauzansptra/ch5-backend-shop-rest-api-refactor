@@ -1,4 +1,6 @@
 const { Products, Shops } = require("../models");
+const { Op } = require("sequelize");
+
 
 const createProduct = async (req, res) => {
   const { name, stock, price, shopId } = req.body;
@@ -47,35 +49,54 @@ const createProduct = async (req, res) => {
   }
 };
 
+
 const getAllProduct = async (req, res) => {
   try {
-    const { name, minPrice, maxPrice } = req.query;
-    const condition = {};
+    const { name, minStock, maxStock, minPrice, maxPrice, shopId, page = 1, limit = 10, sortBy = 'name', order = 'ASC' } = req.query;
 
-    if (name) condition.name = { [Op.iLike]: `%${name}%` };
-    if (minPrice) condition.price = { [Op.gte]: minPrice };
-    if (maxPrice) condition.price = { [Op.lte]: maxPrice };
+    const productCondition = {};
+    if (name) productCondition.name = { [Op.iLike]: `%${name}%` };
+    if (minStock) productCondition.stock = { [Op.gte]: parseInt(minStock) };
+    if (maxStock) productCondition.stock = { [Op.lte]: parseInt(maxStock) };
+    if (minPrice) productCondition.price = { [Op.gte]: parseInt(minPrice) };
+    if (maxPrice) productCondition.price = { [Op.lte]: parseInt(maxPrice) };
+    if (minStock && maxStock) productCondition.stock = { [Op.between]: [parseInt(minStock), parseInt(maxStock)] };
+    if (minPrice && maxPrice) productCondition.price = { [Op.between]: [parseInt(minPrice), parseInt(maxPrice)] };
+    if (shopId) productCondition.shopId = shopId;
 
-    const products = await Products.findAll({
-      where: condition,
+    const offset = (page - 1) * limit;
+
+    const products = await Products.findAndCountAll({
+      where: productCondition,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [[sortBy, order.toUpperCase()]],
       include: [
         {
           model: Shops,
           as: "shop",
+          attributes: ["name"], 
         },
       ],
     });
 
+    const totalData = products.count;
+    const totalPages = Math.ceil(totalData / limit);
+
     res.status(200).json({
       status: "Success",
-      message: "Success get products data",
+      message: "Products fetched successfully",
       isSuccess: true,
       data: {
-        products,
+        totalData,
+        totalPages,
+        currentPage: parseInt(page),
+        products: products.rows,
       },
     });
   } catch (error) {
     console.log(error.name);
+
     if (error.name === "SequelizeValidationError") {
       const errorMessage = error.errors.map((err) => err.message);
       return res.status(400).json({
@@ -93,6 +114,10 @@ const getAllProduct = async (req, res) => {
       data: null,
     });
   }
+};
+
+module.exports = {
+  getAllProduct,
 };
 
 
