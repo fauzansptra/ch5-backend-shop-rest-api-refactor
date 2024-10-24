@@ -49,16 +49,19 @@ const createShop = async (req, res) => {
 
 const getAllShop = async (req, res) => {
   try {
-    const {
-      shopName,
-      adminEmail,
-      productName,
-      stock,
-      minPrice,
-      maxPrice,
-      page = 1,
-      limit = 10,
+    const { 
+      shopName, 
+      adminEmail, 
+      productName, 
+      stock, 
+      minPrice, 
+      maxPrice, 
+      page = 1, 
+      limit = 10, 
+      sortBy = 'name', 
+      order = 'ASC' 
     } = req.query;
+    
     const condition = {};
     if (shopName) condition.name = { [Op.iLike]: `%${shopName}%` };
     if (adminEmail) condition.adminEmail = { [Op.iLike]: `%${adminEmail}%` };
@@ -68,16 +71,15 @@ const getAllShop = async (req, res) => {
     if (stock) productCondition.stock = stock;
     if (minPrice) productCondition.price = { [Op.gte]: minPrice };
     if (maxPrice) {
-      productCondition.price = {
-        ...productCondition.price,
-        [Op.lte]: maxPrice,
+      productCondition.price = { 
+        ...productCondition.price, 
+        [Op.lte]: maxPrice 
       };
     }
 
-    // pagination
     const offset = (page - 1) * limit;
 
-    const shops = await Shops.findAll({
+    const shops = await Shops.findAndCountAll({
       include: [
         {
           model: Products,
@@ -93,6 +95,9 @@ const getAllShop = async (req, res) => {
       ],
       attributes: ["name", "adminEmail"],
       where: condition,
+      order: [[sortBy, order.toUpperCase()]], 
+      limit: parseInt(limit), 
+      offset: parseInt(offset), 
     });
 
     const totalData = shops.count;
@@ -129,6 +134,7 @@ const getAllShop = async (req, res) => {
     });
   }
 };
+
 
 const getShopById = async (req, res) => {
   const id = req.params.id;
