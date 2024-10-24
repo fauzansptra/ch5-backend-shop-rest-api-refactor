@@ -49,7 +49,15 @@ const createProduct = async (req, res) => {
 
 const getAllProduct = async (req, res) => {
   try {
+    const { name, minPrice, maxPrice } = req.query;
+    const condition = {};
+
+    if (name) condition.name = { [Op.iLike]: `%${name}%` };
+    if (minPrice) condition.price = { [Op.gte]: minPrice };
+    if (maxPrice) condition.price = { [Op.lte]: maxPrice };
+
     const products = await Products.findAll({
+      where: condition,
       include: [
         {
           model: Shops,
@@ -86,6 +94,7 @@ const getAllProduct = async (req, res) => {
     });
   }
 };
+
 
 const getProductById = async (req, res) => {
   const id = req.params.id;
