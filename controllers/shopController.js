@@ -8,7 +8,7 @@ const createShop = async (req, res) => {
     const newShop = await Shops.create({
       name,
       adminEmail,
-      userId,
+      userId: req.user.id,
     });
 
     res.status(201).json({
